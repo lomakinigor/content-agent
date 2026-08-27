@@ -84,7 +84,7 @@ main() {
     if [ -n "$gruppa" ] && [ "${gruppa#\#}" = "$gruppa" ] && { [ "$SERIA" = "all" ] || [ "$SERIA" = "$gruppa" ]; }; then
       NAVYKI+=("$navyk")
     fi
-  done < "$TMP/$MANIFEST"
+  done < <(tr -d '\r' < "$TMP/$MANIFEST")
 
   if [ "${#NAVYKI[@]}" -eq 0 ]; then
     echo "❌ Серия «$SERIA» не найдена. Проверь название в $MANIFEST."
