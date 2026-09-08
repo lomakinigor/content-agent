@@ -8,7 +8,7 @@
 #   USER.md, MEMORY.md, SOUL.md, memory/, knowledge/, content/
 # Твоя распаковка, банк идей, контент-план и вся история остаются на месте.
 #
-# Запуск: bash obnovit-agenta.sh [base|today|product|funnel]
+# Запуск: bash obnovit-agenta.sh
 # (на Windows - через Git Bash, он ставится вместе с git)
 #
 # Тело обёрнуто в функцию main специально: так bash читает файл целиком ДО выполнения,
@@ -17,18 +17,16 @@
 set -euo pipefail
 
 main() {
-  SKLAD="https://github.com/lomakinigor/content-agent.git"
+  SKLAD="https://github.com/mcdenil-skills/content-agent.git"
   TMP=".obnovlenie-tmp"
-  SERIA="${1:-all}"
-  MANIFEST="skill-series.tsv"
 
-  # Служебные папки, которые обновляются целиком.
-  SLUZHEBNYE_PAPKI=("instructions")
+  # Папки, которые обновляются целиком.
+  SLUZHEBNYE_PAPKI=(".claude/skills" ".codex/skills" "instructions")
 
   # Служебные файлы, которые обновляются.
   # README.md сознательно НЕ обновляем: в репозитории лежит README про сам репозиторий,
   # а у тебя дома - README про твоего агента. Перезапись их перепутает.
-  SLUZHEBNYE_FAYLY=("CLAUDE.md" "AGENTS.md" "obnovit-agenta.sh" "skill-series.tsv")
+  SLUZHEBNYE_FAYLY=("CLAUDE.md" "AGENTS.md" "obnovit-agenta.sh")
 
   # Личные файлы - список для проверки, что мы их не задели.
   LICHNYE=("USER.md" "MEMORY.md" "SOUL.md" "memory" "knowledge" "content")
@@ -73,40 +71,6 @@ main() {
     fi
   done
 
-  # --- Выбираем и ставим серию навыков ---
-  if [ ! -f "$TMP/$MANIFEST" ]; then
-    echo "❌ Не вижу $MANIFEST в репозитории обновления."
-    exit 1
-  fi
-
-  NAVYKI=()
-  while IFS='|' read -r gruppa navyk; do
-    if [ -n "$gruppa" ] && [ "${gruppa#\#}" = "$gruppa" ] && { [ "$SERIA" = "all" ] || [ "$SERIA" = "$gruppa" ]; }; then
-      NAVYKI+=("$navyk")
-    fi
-  done < <(tr -d '\r' < "$TMP/$MANIFEST")
-
-  if [ "${#NAVYKI[@]}" -eq 0 ]; then
-    echo "❌ Серия «$SERIA» не найдена. Проверь название в $MANIFEST."
-    exit 1
-  fi
-
-  for navyk in "${NAVYKI[@]}"; do
-    if [ ! -d "$TMP/.claude/skills/$navyk" ]; then
-      echo "❌ Не найден исходный навык: $navyk. Обновление остановлено."
-      exit 1
-    fi
-  done
-
-  echo "🧩 Ставлю серию навыков: $SERIA"
-  for navyk in "${NAVYKI[@]}"; do
-    for agent in ".claude" ".codex"; do
-      mkdir -p "$agent/skills/$navyk"
-      cp -R "$TMP/.claude/skills/$navyk/." "$agent/skills/$navyk/"
-    done
-    echo "   ✅ $navyk"
-  done
-
   # --- Убираем за собой ---
   rm -rf "$TMP"
 
@@ -124,7 +88,7 @@ main() {
   fi
 
   echo
-  echo "✅ Готово. Закрой этот чат и открой новый - агент подхватит обновления. Старый чат удали."
+  echo "✅ Готово. Закрой этот чат и открой новый - агент подхватит обновления."
 }
 
 # Слепок содержимого личных файлов: список «контрольная сумма - файл».

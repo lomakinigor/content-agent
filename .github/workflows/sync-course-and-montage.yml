@@ -1,0 +1,71 @@
+name: Sync course and AutoMontage skill
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-course-and-montage
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update clean course files and montage skill
+        env:
+          COURSE_SOURCE: https://github.com/Ntmib/content-agent.git
+          MONTAGE_SOURCE: https://github.com/lomakinigor/AutoMontage-Agent.git
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "$COURSE_SOURCE" "$RUNNER_TEMP/course-source"
+          rsync -a --delete --exclude '.git' --exclude '.github' \
+            "$RUNNER_TEMP/course-source/" "$GITHUB_WORKSPACE/"
+
+          git clone --depth 1 "$MONTAGE_SOURCE" "$RUNNER_TEMP/montage-source"
+          for destination in skills/avtomontazh .claude/skills/avtomontazh .codex/skills/avtomontazh; do
+            mkdir -p "$destination"
+            rsync -a --delete "$RUNNER_TEMP/montage-source/.claude/skills/avtomontazh/" "$destination/"
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          skill_row = "| `avtomontazh` | «смонтируй видео», «субтитры», «reels», «вырежи паузы» | ✅ установлен |\n"
+          installer_row = "| автомонтаж видео / смонтируй / субтитры / reels | `avtomontazh` | дополнение | ✅ доступен |\n"
+
+          claude = Path("CLAUDE.md")
+          text = claude.read_text()
+          if skill_row not in text:
+              marker = "| `installer` | «поставь скилл X», «установи X», «разблокируй X», «прокачай агента» | ✅ установлен |\n"
+              text = text.replace(marker, marker + skill_row)
+              claude.write_text(text)
+
+          marker = "| нейромонтаж / монтаж ИИ | `neuro-editing` | 2 | ⏳ ещё не завезли |\n"
+          for path in (Path(".claude/skills/installer/SKILL.md"), Path(".codex/skills/installer/SKILL.md")):
+              text = path.read_text()
+              if installer_row not in text:
+                  text = text.replace(marker, marker + installer_row)
+                  path.write_text(text)
+          PY
+
+      - name: Commit and publish changes
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --check --cached
+          git commit -m 'sync: refresh course and avtomontazh'
+          git push origin HEAD:main
