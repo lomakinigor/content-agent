@@ -60,6 +60,8 @@ main() {
     echo "   ✅ $skill"
   done
 
+  cp "$tmp/obnovit-agenta.sh" obnovit-agenta.sh
+  cp "$tmp/$manifest" "$manifest"
   printf '%s\n' "$source_sha" > .content-agent-version
   rm -rf -- "$tmp"
 
