@@ -30,8 +30,10 @@ while IFS='|' read -r series skill; do
 done < <(tr -d '\r' < "$ROOT/skill-series.tsv")
 
 test "$(cat "$fixture/.content-agent-version")" = "$(git -C "$ROOT" rev-parse HEAD)"
-cmp "$ROOT/obnovit-agenta.sh" "$fixture/obnovit-agenta.sh"
-cmp "$ROOT/skill-series.tsv" "$fixture/skill-series.tsv"
+git -C "$ROOT" show HEAD:obnovit-agenta.sh | tr -d '\r' > "$WORK/expected-updater.sh"
+git -C "$ROOT" show HEAD:skill-series.tsv | tr -d '\r' > "$WORK/expected-manifest.tsv"
+tr -d '\r' < "$fixture/obnovit-agenta.sh" | cmp "$WORK/expected-updater.sh" -
+tr -d '\r' < "$fixture/skill-series.tsv" | cmp "$WORK/expected-manifest.tsv" -
 after="$(/usr/bin/find "$fixture/USER.md" "$fixture/MEMORY.md" "$fixture/SOUL.md" "$fixture/memory" "$fixture/knowledge" "$fixture/content" -type f -exec /usr/bin/sha256sum {} \; | sort)"
 test "$before" = "$after"
 
